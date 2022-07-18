@@ -15,6 +15,11 @@ return new class extends Migration
     {
         Schema::create('trello_cards', function (Blueprint $table) {
             $table->id();
+            $table->string('card_id');
+            $table->string('name');
+            $table->string('shortLink');
+            $table->dateTimeTz('due_date');
+            $table->string('list_id');
             $table->timestamps();
         });
     }

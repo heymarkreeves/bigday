@@ -1,7 +1,7 @@
 <?php
-
 namespace App\Services;
 
+use App\Helpers\Formatter;
 use App\Models\TrelloBoard;
 use App\Models\TrelloCard;
 use App\Models\TrelloCardTrelloLabel;
@@ -20,11 +20,86 @@ class TrelloDbService
         //
     }
 
+    private function setCustomFieldValue(&$cardData, $customField) {
+        $config = config('trello');
+
+        $dbField = $config['card_fields'][$customField['idCustomField']];
+        if (!isset($dbField))
+            return false;
+
+        switch ($dbField['type']) {
+            case 'lookup':
+                $value = TrelloCustomFieldOption::where('custom_field_option_id', $customField['idValue'])->first();
+                if (isset($value))
+                    $cardData[$dbField['db_field']] = $value->value_text;
+                break;
+            case 'string':
+                $cardData[$dbField['db_field']] = $customField['value']['text'];
+                break;
+            case 'dollars':
+                $cardData[$dbField['db_field']] = (int)(100 * (float)$customField['value']['number']);
+                break;
+            case 'number':
+                $cardData[$dbField['db_field']] = (int)$customField['value']['number'];
+                break;
+            case 'boolean':
+                $cardData[$dbField['db_field']] = $customField['value']['checked'] == 'true';
+                break;
+            case 'datetime':
+                $d = new \DateTime($customField['value']['date']);
+                $cardData[$dbField['db_field']] = $d->format('c');
+                break;
+            case 'phone':
+                $formatter = new Formatter();
+                $cardData[$dbField['db_field']] = $formatter->rawPhoneNumber($customField['value']['text']);
+                break;
+            default:
+                break;
+        }
+
+        return true;
+    }
+
     public function upsertTrelloCard($apiData = []) {
-        // upsert labels found on card
-        // upsert card, return ID
-        // create card label relations
-        // create card member relations
+        $d = new \DateTime($apiData['due']);
+
+        $cardData = [];
+        // Loop through custom fields in apiData
+        foreach($apiData['customFields'] as $customField) {
+            $this->setCustomFieldValue($cardData, $customField);
+        }
+        $cardData['name'] = $apiData['name'];
+        $cardData['shortLink'] = $apiData['shortLink'];
+        $cardData['due_date'] = $d->format('c');
+        $cardData['list_id'] = $apiData['idList'];
+
+        $card = TrelloCard::updateOrCreate(
+            ['card_id' => $apiData['id']],
+            $cardData
+            // [
+            //     'name' => $apiData['name'],
+            //     'shortLink' => $apiData['shortLink'],
+            //     'due_date' => $d->format('c'),
+            //     'list_id' => $apiData['idList']
+            // ]
+        );
+        foreach($apiData['labels'] as $cardLabel) {
+            $label = TrelloLabel::updateOrCreate(
+                ['label_id' => $cardLabel['id']],
+                ['name' => $cardLabel['name'], 'color' => $cardLabel['color']]
+            );
+            $cardLabelRelation = TrelloCardTrelloLabel::updateOrCreate(
+                ['trello_card_id' => $card->id, 'trello_label_id' => $label->id],
+                ['trello_card_id' => $card->id, 'trello_label_id' => $label->id]
+            );
+        }
+        foreach($apiData['idMembers'] as $cardMemberId) {
+            $member = TrelloMember::where('member_id', $cardMemberId)->first();
+            $cardMemberRelation = TrelloCardTrelloMember::updateOrCreate(
+                ['trello_card_id' => $card->id, 'trello_member_id' => $member->id],
+                ['trello_card_id' => $card->id, 'trello_member_id' => $member->id]
+            );
+        }
     }
 
     public function clearTrelloCardTrelloLabels() {
@@ -66,12 +141,7 @@ class TrelloDbService
     }
 
     public function upsertTrelloLabel($apiData = []) {
-        $list = TrelloMember::updateOrCreate(
-            ['label_id' => $apiData['id']],
-            ['name' => $apiData['name'], 'color' => $apiData['color']]
-        );
-
-        return true;
+        //
     }
 
     public function upsertTrelloList($apiData = []) {

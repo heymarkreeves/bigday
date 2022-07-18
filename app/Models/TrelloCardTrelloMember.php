@@ -14,5 +14,12 @@ class TrelloCardTrelloMember extends Model
      *
      * @var string
      */
-    protected $table = 'trello_card_trello_label';
+    protected $table = 'trello_card_trello_member';
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = ['trello_card_id', 'trello_member_id'];
 }
