@@ -19,6 +19,8 @@ craft.bat
 .stylelintrc
 webpack.mix.js
 
+.deployignore
+.editorconfig
 .gitattributes
 .styleci.yml
 _package.json
