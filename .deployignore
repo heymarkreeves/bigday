@@ -1,0 +1,37 @@
+# DeployHQ excluded files
+**/.gitignore
+**/.env.example
+**/.htaccess.example
+src/**
+.gitignore
+.env.example
+.htaccess.example
+gulpfile.js
+package.json
+package-lock.json
+readme.md
+README.md
+readme.txt
+README.txt
+craft.bat
+.eslintignore
+.eslintrc.json
+.stylelintrc
+webpack.mix.js
+
+.gitattributes
+.styleci.yml
+_package.json
+_postcss.config.js
+_tailwind.config.js
+postcss.config.js
+vite.config.js
+
+# DeployHQ Build Server Excludes
+# node_modules are already in gitignore, but ensure DeployHQ
+# build server doesn't upload them back to production server
+# =========================================================
+node_modules
+node_modules/**
+
+bin/**
